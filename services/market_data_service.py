@@ -1,56 +1,181 @@
 """
+AI Trading Operating System
 Market Data Service
+
+Business Service for Market Data Management
 """
+
+from __future__ import annotations
+
+from datetime import date
+from uuid import UUID
 
 from database.models.market_data import MarketData
 from database.unit_of_work import UnitOfWork
 
 from dto.market_data_dto import MarketDataCreateDTO
 
-from validators.market_data_validator import (
-    MarketDataValidator,
-)
+from services.base_service import BaseService
+
+from validators.base_validator import ValidationError
+from validators.market_data_validator import MarketDataValidator
 
 
-class MarketDataService:
+class MarketDataService(BaseService):
+    """
+    Business Service for Market Data.
+    """
 
-    def __init__(self):
-
+    def __init__(self) -> None:
+        super().__init__()
         self.validator = MarketDataValidator()
+
+    # ---------------------------------------------------------
+    # Create
+    # ---------------------------------------------------------
 
     def create_market_data(
         self,
         dto: MarketDataCreateDTO,
-    ):
+    ) -> MarketData:
 
         self.validator.validate(dto)
 
         with UnitOfWork() as uow:
 
+            if uow.market_data.exists_for_symbol_and_date(
+                dto.symbol_id,
+                dto.trading_date,
+            ):
+                raise ValidationError(
+                    "Market data already exists for this symbol and trading date."
+                )
+
             data = MarketData(
-
                 symbol_id=dto.symbol_id,
-
                 trading_date=dto.trading_date,
-
                 open_price=dto.open_price,
                 high_price=dto.high_price,
                 low_price=dto.low_price,
                 close_price=dto.close_price,
-
                 adjusted_close=dto.adjusted_close,
-
                 volume=dto.volume,
-
                 delivery_volume=dto.delivery_volume,
                 delivery_percent=dto.delivery_percent,
-
                 turnover=dto.turnover,
                 vwap=dto.vwap,
                 trade_count=dto.trade_count,
-
             )
 
             uow.market_data.add(data)
 
+            uow.flush()
+
             return data
+
+    # ---------------------------------------------------------
+    # Read
+    # ---------------------------------------------------------
+
+    def get_market_data(
+        self,
+        market_data_id: UUID,
+    ) -> MarketData | None:
+
+        with UnitOfWork() as uow:
+            return uow.market_data.get_by_id(market_data_id)
+
+    def get_latest_price(
+        self,
+        symbol_id: UUID,
+    ) -> MarketData | None:
+
+        with UnitOfWork() as uow:
+            return uow.market_data.get_latest_price(symbol_id)
+
+    def get_by_symbol_and_date(
+        self,
+        symbol_id: UUID,
+        trading_date: date,
+    ) -> MarketData | None:
+
+        with UnitOfWork() as uow:
+            return uow.market_data.get_by_symbol_and_date(
+                symbol_id,
+                trading_date,
+            )
+
+    def get_price_history(
+        self,
+        symbol_id: UUID,
+        start_date: date,
+        end_date: date,
+    ) -> list[MarketData]:
+
+        with UnitOfWork() as uow:
+            return uow.market_data.get_price_history(
+                symbol_id,
+                start_date,
+                end_date,
+            )
+
+    def get_complete_history(
+        self,
+        symbol_id: UUID,
+    ) -> list[MarketData]:
+
+        with UnitOfWork() as uow:
+            return uow.market_data.get_price_history_by_symbol(
+                symbol_id
+            )
+
+    # ---------------------------------------------------------
+    # Information
+    # ---------------------------------------------------------
+
+    def count_by_symbol(
+        self,
+        symbol_id: UUID,
+    ) -> int:
+
+        with UnitOfWork() as uow:
+            return uow.market_data.count_by_symbol(symbol_id)
+
+    def get_latest_trading_date(self):
+
+        with UnitOfWork() as uow:
+            return uow.market_data.get_latest_trading_date()
+
+    def get_earliest_trading_date(self):
+
+        with UnitOfWork() as uow:
+            return uow.market_data.get_earliest_trading_date()
+
+    def get_all_symbol_ids(self):
+
+        with UnitOfWork() as uow:
+            return uow.market_data.get_all_symbol_ids()
+
+    # ---------------------------------------------------------
+    # Delete
+    # ---------------------------------------------------------
+
+    def delete_market_data(
+        self,
+        market_data_id: UUID,
+    ) -> None:
+
+        with UnitOfWork() as uow:
+
+            data = uow.market_data.get_by_id(
+                market_data_id
+            )
+
+            self.require_not_none(
+                data,
+                "Market Data",
+            )
+
+            uow.market_data.delete(data)
+
+            uow.flush()
