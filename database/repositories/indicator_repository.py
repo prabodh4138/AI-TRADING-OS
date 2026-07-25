@@ -1,44 +1,83 @@
+"""
+AI Trading Operating System
+Indicator Repository
+"""
+
 from __future__ import annotations
 
 from typing import Sequence
+from uuid import UUID
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy import delete, desc, select
 
 from database.models.indicator_data import IndicatorData
+from database.repositories.base_repository import BaseRepository
 
 
-class IndicatorRepository:
-    """Repository for IndicatorData."""
+class IndicatorRepository(BaseRepository[IndicatorData]):
+    """
+    Repository for IndicatorData.
 
-    def __init__(self, session: Session):
-        self.session = session
+    Only indicator-specific queries should exist here.
+    Generic CRUD functionality is inherited from BaseRepository.
+    """
 
-    def save(self, indicator: IndicatorData) -> IndicatorData:
-        self.session.add(indicator)
-        self.session.flush()
-        return indicator
+    model = IndicatorData
 
-    def save_all(self, indicators: list[IndicatorData]) -> None:
-        self.session.add_all(indicators)
-        self.session.flush()
+    # ------------------------------------------------------------------
+    # Queries
+    # ------------------------------------------------------------------
 
     def get_by_symbol(
         self,
-        symbol_id,
+        symbol_id: UUID,
     ) -> Sequence[IndicatorData]:
+        """
+        Return all indicator records for a symbol.
+        """
+
         stmt = (
             select(IndicatorData)
-            .where(IndicatorData.symbol_id == symbol_id)
-            .order_by(IndicatorData.trading_date)
+            .where(
+                IndicatorData.symbol_id == symbol_id
+            )
+            .order_by(
+                IndicatorData.trading_date
+            )
         )
+
         return self.session.scalars(stmt).all()
+
+    def get_latest(
+        self,
+        symbol_id: UUID,
+    ) -> IndicatorData | None:
+        """
+        Return latest indicator record for a symbol.
+        """
+
+        stmt = (
+            select(IndicatorData)
+            .where(
+                IndicatorData.symbol_id == symbol_id
+            )
+            .order_by(
+                desc(IndicatorData.trading_date)
+            )
+            .limit(1)
+        )
+
+        return self.session.scalar(stmt)
 
     def get_by_symbol_and_date(
         self,
-        symbol_id,
+        symbol_id: UUID,
         trading_date,
     ) -> IndicatorData | None:
+        """
+        Return indicator record for a symbol on a specific trading date.
+        """
+
         stmt = (
             select(IndicatorData)
             .where(
@@ -46,12 +85,64 @@ class IndicatorRepository:
                 IndicatorData.trading_date == trading_date,
             )
         )
+
         return self.session.scalar(stmt)
 
     def delete_by_symbol(
         self,
-        symbol_id,
-    ) -> None:
-        rows = self.get_by_symbol(symbol_id)
-        for row in rows:
-            self.session.delete(row)
+        symbol_id: UUID,
+    ) -> int:
+        """
+        Delete all indicator records for a symbol.
+
+        Returns:
+            Number of deleted rows.
+        """
+
+        stmt = (
+            delete(IndicatorData)
+            .where(
+                IndicatorData.symbol_id == symbol_id
+            )
+        )
+
+        result = self.session.execute(stmt)
+
+        return result.rowcount or 0
+
+    def exists_for_symbol_and_date(
+        self,
+        symbol_id: UUID,
+        trading_date,
+    ) -> bool:
+        """
+        Check whether an indicator record already exists.
+        """
+
+        stmt = (
+            select(IndicatorData.indicator_data_id)
+            .where(
+                IndicatorData.symbol_id == symbol_id,
+                IndicatorData.trading_date == trading_date,
+            )
+            .limit(1)
+        )
+
+        return self.session.scalar(stmt) is not None
+
+    def count_by_symbol(
+        self,
+        symbol_id: UUID,
+    ) -> int:
+        """
+        Return total indicator records for a symbol.
+        """
+
+        stmt = (
+            select(IndicatorData)
+            .where(
+                IndicatorData.symbol_id == symbol_id
+            )
+        )
+
+        return len(self.session.scalars(stmt).all())

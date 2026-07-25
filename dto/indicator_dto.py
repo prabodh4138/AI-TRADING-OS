@@ -38,8 +38,8 @@ class IndicatorDTO:
     plus_di: Decimal | None = None
     minus_di: Decimal | None = None
 
-    supertrend: Decimal | None = None
-    supertrend_direction: int | None = None
+    #supertrend: Decimal | None = None
+    #supertrend_direction: int | None = None
 
     obv: Decimal | None = None
     volume_sma20: Decimal | None = None

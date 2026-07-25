@@ -103,8 +103,8 @@ class IndicatorData(BaseModel):
     # =========================
     # SuperTrend
     # =========================
-    supertrend: Mapped[Decimal | None] = mapped_column(Numeric(18, 4))
-    supertrend_direction: Mapped[int | None] = mapped_column()
+    #supertrend: Mapped[Decimal | None] = mapped_column(Numeric(18, 4))
+    #supertrend_direction: Mapped[int | None] = mapped_column()
 
     # =========================
     # Volume
