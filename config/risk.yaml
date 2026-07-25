@@ -1,0 +1,3 @@
+risk:
+  max_positions: 20
+  max_risk_per_trade: 2

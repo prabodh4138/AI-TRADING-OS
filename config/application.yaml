@@ -1,0 +1,8 @@
+application:
+  name: AI Trading Operating System
+  short_name: AI-TOS
+  version: 1.0.0
+  environment: development
+
+logging:
+  level: INFO
