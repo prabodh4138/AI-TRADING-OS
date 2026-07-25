@@ -1,3 +1,5 @@
+import traceback
+
 from dto.symbol_dto import SymbolCreateDTO
 from services.symbol_service import SymbolService
 
@@ -25,10 +27,13 @@ def main():
         symbol = service.create_symbol(dto)
 
         print("✓ Created :", symbol.symbol_code)
-
     except Exception as e:
-
-        print("Error :", e)
+        print("=" * 80)
+        print(type(e).__name__)
+        print("=" * 80)
+        print(e)
+        print("=" * 80)
+    traceback.print_exc()
 
 
 if __name__ == "__main__":
