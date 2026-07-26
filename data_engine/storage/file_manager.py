@@ -8,20 +8,23 @@ Module:
 
 Purpose
 -------
-Centralized file management for the Data Engine.
+Provides file storage services for the Data Engine.
 
 Responsibilities
 ----------------
 1. Create directories
-2. Build filenames
-3. Build output paths
-4. Check file existence
-5. Save text files
-6. Read text files
-7. Delete files (future)
+2. Generate filenames
+3. Build file paths
+4. Save files
+5. Read files
+6. Delete files
 
-This module is provider-independent and can be reused
-by NSE, Yahoo, Polygon, or any future data source.
+This class does NOT know anything about:
+- NSE
+- Yahoo
+- Database
+- HTTP
+- Validation
 
 Author:
     AI Trading OS
@@ -30,57 +33,46 @@ Author:
 
 from __future__ import annotations
 
-import logging
+from datetime import date
 from pathlib import Path
 
 
 class FileManager:
     """
-    Generic file manager.
-
-    Handles all filesystem operations for the
-    Data Engine.
+    Handles all file system operations.
     """
 
     def __init__(
         self,
-        root_directory: Path,
-        logger: logging.Logger | None = None,
+        root_directory: str | Path,
+        extension: str = ".csv",
     ) -> None:
+        """
+        Initialize FileManager.
+        """
 
         self.root_directory = Path(root_directory)
+        self.extension = extension
 
-        self.logger = logger or logging.getLogger(__name__)
+        self.ensure_directory()
+
+    # ==================================================
+    # Directory
+    # ==================================================
+
+    def ensure_directory(self) -> None:
+        """
+        Create the root directory if it does not exist.
+        """
 
         self.root_directory.mkdir(
             parents=True,
             exist_ok=True,
         )
 
-    # --------------------------------------------------
-    # Directory
-    # --------------------------------------------------
-
-    def ensure_directory(
-        self,
-        directory: Path,
-    ) -> Path:
-        """
-        Create directory if it does not exist.
-        """
-
-        directory = Path(directory)
-
-        directory.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-
-        return directory
-
-    # --------------------------------------------------
-    # Filename
-    # --------------------------------------------------
+    # ==================================================
+    # Legacy Filename Builder (Backward Compatibility)
+    # ==================================================
 
     def build_filename(
         self,
@@ -89,7 +81,10 @@ class FileManager:
         identifier: str,
     ) -> str:
         """
-        Build a standardized filename.
+        Build a filename.
+
+        This method is retained for backward compatibility
+        with existing tests and callers.
 
         Example
         -------
@@ -100,70 +95,81 @@ class FileManager:
 
         return f"{prefix}{identifier}.{extension}"
 
-    # --------------------------------------------------
+    # ==================================================
+    # New Enterprise Filename Builder
+    # ==================================================
+
+    def build_daily_filename(
+        self,
+        trade_date: date,
+        prefix: str = "bhavcopy",
+    ) -> str:
+        """
+        Generate a daily filename.
+
+        Example
+        -------
+        bhavcopy_20260725.csv
+        """
+
+        return (
+            f"{prefix}_"
+            f"{trade_date:%Y%m%d}"
+            f"{self.extension}"
+        )
+
+    # ==================================================
     # Path
-    # --------------------------------------------------
+    # ==================================================
 
     def build_path(
         self,
         filename: str,
     ) -> Path:
         """
-        Build full output path.
+        Build an absolute file path.
         """
 
         return self.root_directory / filename
 
-    # --------------------------------------------------
+    # ==================================================
     # Exists
-    # --------------------------------------------------
+    # ==================================================
 
     def exists(
         self,
-        path: Path,
+        filename: str,
     ) -> bool:
         """
         Check whether a file exists.
         """
 
-        return Path(path).exists()
+        return self.build_path(filename).exists()
 
-    # --------------------------------------------------
+    # ==================================================
     # Save
-    # --------------------------------------------------
+    # ==================================================
 
     def save_text(
         self,
         path: Path,
-        content: str,
+        text: str,
         encoding: str = "utf-8",
     ) -> Path:
         """
-        Save text to disk.
+        Save text to a file.
         """
 
-        path = Path(path)
-
-        path.parent.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-
         path.write_text(
-            content,
+            text,
             encoding=encoding,
-        )
-
-        self.logger.info(
-            "Saved file: %s",
-            path.name,
         )
 
         return path
 
-    # --------------------------------------------------
+    # ==================================================
     # Read
-    # --------------------------------------------------
+    # ==================================================
 
     def read_text(
         self,
@@ -171,41 +177,33 @@ class FileManager:
         encoding: str = "utf-8",
     ) -> str:
         """
-        Read text from disk.
+        Read text from a file.
         """
 
-        return Path(path).read_text(
+        return path.read_text(
             encoding=encoding,
         )
 
-    # --------------------------------------------------
+    # ==================================================
     # Delete
-    # --------------------------------------------------
+    # ==================================================
 
     def delete(
         self,
         path: Path,
     ) -> bool:
         """
-        Delete a file if it exists.
+        Delete a file.
 
         Returns
         -------
         bool
-            True if deleted.
-            False if file not found.
+            True if the file was deleted.
+            False if the file did not exist.
         """
 
-        path = Path(path)
+        if path.exists():
+            path.unlink()
+            return True
 
-        if not path.exists():
-            return False
-
-        path.unlink()
-
-        self.logger.info(
-            "Deleted file: %s",
-            path.name,
-        )
-
-        return True
+        return False
