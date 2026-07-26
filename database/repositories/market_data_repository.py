@@ -10,7 +10,7 @@ from uuid import UUID
 from collections.abc import Iterable
 import logging
 
-import pandas as pd
+
 from sqlalchemy import desc, distinct, func, select
 
 from database.models.market_data import MarketData
@@ -290,75 +290,4 @@ class MarketDataRepository(BaseRepository[MarketData]):
         )
 
         return inserted
-    # ------------------------------------------------------------------
-    # DataFrame Bulk Import
-    # ------------------------------------------------------------------
-
-    def bulk_insert_dataframe(
-        self,
-        dataframe: pd.DataFrame,
-        *,
-        batch_size: int = DEFAULT_BATCH_SIZE,
-    ) -> int:
-        """
-        Convert a transformed DataFrame into MarketData ORM
-        objects and persist them using bulk_insert().
-
-        NOTE
-        ----
-        This method is kept temporarily for backward compatibility.
-        In a future sprint, DataFrame-to-ORM conversion will be moved
-        into a dedicated MarketDataMapper service.
-
-        Parameters
-        ----------
-        dataframe : pd.DataFrame
-            Transformed market data.
-
-        batch_size : int
-            Number of records inserted per batch.
-
-        Returns
-        -------
-        int
-            Number of inserted rows.
-        """
-
-        logger = logging.getLogger(
-            self.__class__.__name__
-        )
-
-        if dataframe.empty:
-            logger.info(
-                "Received empty dataframe."
-            )
-            return 0
-
-        entities: list[MarketData] = []
-
-        for row in dataframe.itertuples(index=False):
-
-            entity = MarketData(
-                symbol_id=row.symbol_id,
-                trading_date=row.trading_date,
-                open_price=row.open,
-                high_price=row.high,
-                low_price=row.low,
-                close_price=row.close,
-                last_price=row.last,
-                previous_close=row.prevclose,
-                total_traded_quantity=row.tottrdqty,
-                total_traded_value=row.tottrdval,
-            )
-
-            entities.append(entity)
-
-        logger.info(
-            "Converted %d dataframe rows into ORM entities.",
-            len(entities),
-        )
-
-        return self.bulk_insert(
-            entities,
-            batch_size=batch_size,
-        )
+    
