@@ -19,6 +19,7 @@ from services.base_service import BaseService
 
 from validators.base_validator import ValidationError
 from validators.market_data_validator import MarketDataValidator
+from services.market_data_mapper import MarketDataMapper
 
 
 class MarketDataService(BaseService):
@@ -29,6 +30,7 @@ class MarketDataService(BaseService):
     def __init__(self) -> None:
         super().__init__()
         self.validator = MarketDataValidator()
+        self.mapper = MarketDataMapper()
 
     # ---------------------------------------------------------
     # Create
@@ -72,7 +74,44 @@ class MarketDataService(BaseService):
             uow.flush()
 
             return data
+    def import_market_data(
+        self,
+        dataframe,
+        *,
+        batch_size: int = 1000,
+    ) -> int:
+        """
+        Import transformed market data into the database.
 
+        Parameters
+        ----------
+        dataframe
+            Transformed pandas DataFrame.
+
+        batch_size : int
+            Number of rows inserted per batch.
+
+        Returns
+        -------
+        int
+            Number of inserted rows.
+        """
+
+        entities = self.mapper.dataframe_to_entities(
+            dataframe
+        )
+
+        if not entities:
+            return 0
+
+        with UnitOfWork() as uow:
+
+            inserted = uow.market_data.bulk_insert(
+                entities,
+                batch_size=batch_size,
+            )
+
+            return inserted
     # ---------------------------------------------------------
     # Read
     # ---------------------------------------------------------
