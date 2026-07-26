@@ -430,7 +430,7 @@ class DataTransformer:
         df = dataframe.copy()
 
         if "processed_at" not in df.columns:
-            df["processed_at"] = pd.Timestamp.utcnow()
+            df["processed_at"] = pd.Timestamp.now("UTC")
 
         self.logger.info(
             "Derived columns added successfully."
