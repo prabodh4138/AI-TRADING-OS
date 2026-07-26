@@ -6,3 +6,29 @@ application:
 
 logging:
   level: INFO
+###############################################################################
+# SYMBOL MASTER
+###############################################################################
+
+symbol_master:
+
+  # Official NSE Symbol Master
+  url: "https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv"
+
+  # Local download folder
+  download_directory: "downloads/raw/symbols"
+
+  # Download timeout (seconds)
+  timeout: 30
+
+  # Overwrite existing file for same date
+  overwrite: true
+
+  # User Agent
+  user_agent: "AI Trading OS/1.0"
+
+  # Retry attempts
+  retry_count: 3
+
+  # Retry delay (seconds)
+  retry_delay: 2

@@ -89,16 +89,18 @@ class ImportService:
             market_data_service or MarketDataService()
         )
 
+    from pathlib import Path
+
     def import_file(
         self,
-        file_path: str,
+        file_path: str | Path,
     ) -> int:
         """
         Import a single market data CSV file.
 
         Parameters
         ----------
-        file_path : str
+        file_path =path(file_path)
             Path to the CSV file.
 
         Returns

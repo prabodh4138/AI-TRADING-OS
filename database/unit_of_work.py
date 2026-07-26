@@ -10,6 +10,9 @@ from sqlalchemy.orm import Session
 from database.repositories.symbol_repository import SymbolRepository
 from database.repositories.market_data_repository import MarketDataRepository
 from database.repositories.indicator_repository import IndicatorRepository
+from database.repositories.download_history_repository import (
+    DownloadHistoryRepository,
+)
 from database.session import SessionFactory
 
 
@@ -35,7 +38,7 @@ class UnitOfWork:
         self.symbols = SymbolRepository(self.session)
         self.market_data = MarketDataRepository(self.session)
         self.indicators = IndicatorRepository(self.session)
-
+        self.download_history = DownloadHistoryRepository(self.session)
     # -------------------------------------------------------------
     # Transaction Management
     # -------------------------------------------------------------

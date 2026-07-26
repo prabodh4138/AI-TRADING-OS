@@ -6,9 +6,13 @@ Business Service for Market Data Management
 """
 
 from __future__ import annotations
+from html import entities
+import pandas as pd
 
 from datetime import date
 from uuid import UUID
+
+from streamlit import dataframe
 
 from database.models.market_data import MarketData
 from database.unit_of_work import UnitOfWork
@@ -74,9 +78,10 @@ class MarketDataService(BaseService):
             uow.flush()
 
             return data
+
     def import_market_data(
         self,
-        dataframe,
+        dataframe: pd.DataFrame,
         *,
         batch_size: int = 1000,
     ) -> int:
@@ -88,14 +93,70 @@ class MarketDataService(BaseService):
         dataframe
             Transformed pandas DataFrame.
 
-        batch_size : int
-            Number of rows inserted per batch.
+        batch_size
+            Number of records inserted per batch.
 
         Returns
         -------
         int
-            Number of inserted rows.
+            Number of inserted records.
         """
+
+        if dataframe.empty:
+            return 0
+
+        dataframe = dataframe.copy()
+
+        # ---------------------------------------------
+        # Resolve Symbol IDs
+        # ---------------------------------------------
+
+        with UnitOfWork() as uow:
+
+            symbol_codes = (
+                dataframe["symbol"]
+                .dropna()
+                .astype(str)
+                .str.strip()
+                .unique()
+                .tolist()
+            )
+
+            symbol_map = (
+                uow.symbols.get_symbol_id_map(
+                    symbol_codes
+                )
+            )
+
+        dataframe["symbol_id"] = (
+            dataframe["symbol"]
+            .map(symbol_map)
+        )
+
+        # ---------------------------------------------
+        # Validate unresolved symbols
+        # ---------------------------------------------
+
+        unresolved = dataframe[
+            dataframe["symbol_id"].isna()
+        ]
+
+        if not unresolved.empty:
+
+            missing = (
+                unresolved["symbol"]
+                .drop_duplicates()
+                .tolist()
+            )
+
+            raise ValidationError(
+                "Unknown symbol(s): "
+                + ", ".join(missing)
+            )
+
+        # ---------------------------------------------
+        # Convert to ORM entities
+        # ---------------------------------------------
 
         entities = self.mapper.dataframe_to_entities(
             dataframe
@@ -103,6 +164,10 @@ class MarketDataService(BaseService):
 
         if not entities:
             return 0
+
+        # ---------------------------------------------
+        # Bulk Insert
+        # ---------------------------------------------
 
         with UnitOfWork() as uow:
 
@@ -112,6 +177,7 @@ class MarketDataService(BaseService):
             )
 
             return inserted
+
     # ---------------------------------------------------------
     # Read
     # ---------------------------------------------------------

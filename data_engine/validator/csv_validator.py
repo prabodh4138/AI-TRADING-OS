@@ -52,18 +52,22 @@ class CSVValidator:
     """
 
     REQUIRED_COLUMNS: tuple[str, ...] = (
-        "SYMBOL",
-        "SERIES",
-        "OPEN",
-        "HIGH",
-        "LOW",
-        "CLOSE",
-        "LAST",
-        "PREVCLOSE",
-        "TOTTRDQTY",
-        "TOTTRDVAL",
-        "TIMESTAMP",
-    )
+    "SYMBOL",
+    "SERIES",
+    "DATE1",
+    "PREV_CLOSE",
+    "OPEN_PRICE",
+    "HIGH_PRICE",
+    "LOW_PRICE",
+    "LAST_PRICE",
+    "CLOSE_PRICE",
+    "AVG_PRICE",
+    "TTL_TRD_QNTY",
+    "TURNOVER_LACS",
+    "NO_OF_TRADES",
+    "DELIV_QTY",
+    "DELIV_PER",
+)
 
     def __init__(
         self,
@@ -86,6 +90,8 @@ class CSVValidator:
         self,
         dataframe: pd.DataFrame,
     ) -> pd.DataFrame:
+        dataframe = dataframe.copy()
+        dataframe.columns = (dataframe.columns.astype(str).str.strip())
         """
         Validate a DataFrame.
 
@@ -267,15 +273,19 @@ class CSVValidator:
         mandatory_columns = (
             "SYMBOL",
             "SERIES",
-            "OPEN",
-            "HIGH",
-            "LOW",
-            "CLOSE",
-            "LAST",
-            "PREVCLOSE",
-            "TOTTRDQTY",
-            "TOTTRDVAL",
-            "TIMESTAMP",
+            "DATE1",
+            "PREV_CLOSE",
+            "OPEN_PRICE",
+            "HIGH_PRICE",
+            "LOW_PRICE",
+            "LAST_PRICE",
+            "CLOSE_PRICE",
+            "AVG_PRICE",
+            "TTL_TRD_QNTY",
+            "TURNOVER_LACS",
+            "NO_OF_TRADES",
+            "DELIV_QTY",
+            "DELIV_PER",
         )
 
         columns_with_nulls: list[str] = []
@@ -298,7 +308,7 @@ class CSVValidator:
         self.logger.debug(
             "Mandatory columns contain no null values."
         )
-            # ==================================================
+    # ==================================================
     # Validate Minimum Rows
     # ==================================================
 

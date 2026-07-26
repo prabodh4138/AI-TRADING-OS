@@ -2,9 +2,10 @@
 AI Trading Operating System
 Symbol Repository
 """
-
 from __future__ import annotations
+from uuid import UUID
 
+from sqlalchemy import func, select
 from typing import Sequence
 
 from sqlalchemy import func, select
@@ -63,6 +64,44 @@ class SymbolRepository(BaseRepository[Symbol]):
         )
 
         return self.session.scalars(stmt).all()
+
+    def get_symbol_id_map(
+        self,
+        symbol_codes: list[str],
+    ) -> dict[str, UUID]:
+        """
+        Return a mapping of symbol_code -> symbol_id.
+
+        Parameters
+        ----------
+        symbol_codes
+            List of NSE symbol codes.
+
+        Returns
+        -------
+        dict[str, UUID]
+            Dictionary keyed by symbol code.
+        """
+
+        if not symbol_codes:
+            return {}
+
+        stmt = (
+            select(
+                Symbol.symbol_code,
+                Symbol.symbol_id,
+            )
+            .where(
+                Symbol.symbol_code.in_(symbol_codes)
+            )
+        )
+
+        rows = self.session.execute(stmt).all()
+
+        return {
+            symbol_code: symbol_id
+            for symbol_code, symbol_id in rows
+        }
 
     def get_active_symbols(self) -> Sequence[Symbol]:
         """
