@@ -70,12 +70,23 @@ class SymbolCSVLoader:
         except Exception as ex:
             raise RuntimeError(f"Unable to load CSV: {ex}") from ex
 
+        #
+        # Normalize column names
+        #
+
+        df.columns = (
+            df.columns.astype(str)
+            .str.strip()
+            .str.replace(r"\s+", " ", regex=True)
+        )
+
         if df.empty:
             raise ValueError("Loaded DataFrame is empty.")
 
         logger.info("CSV loaded successfully.")
         logger.info("Rows    : {}", len(df))
         logger.info("Columns : {}", len(df.columns))
+        logger.debug("Detected columns: {}", list(df.columns))
 
         return df
 
