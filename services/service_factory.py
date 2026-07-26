@@ -1,16 +1,19 @@
 """
-Central Service Factory
+AI Trading Operating System
+Service Factory
 """
 
 from services.symbol_download_service import SymbolDownloadService
+from data_engine.loader.symbol_csv_loader import SymbolCSVLoader
 
 
 class ServiceFactory:
     """
-    Creates singleton service instances.
+    Central factory for application services.
     """
 
     _symbol_download_service = None
+    _symbol_csv_loader = None
 
     @classmethod
     def symbol_download_service(cls):
@@ -19,3 +22,11 @@ class ServiceFactory:
             cls._symbol_download_service = SymbolDownloadService()
 
         return cls._symbol_download_service
+
+    @classmethod
+    def symbol_csv_loader(cls):
+
+        if cls._symbol_csv_loader is None:
+            cls._symbol_csv_loader = SymbolCSVLoader()
+
+        return cls._symbol_csv_loader
