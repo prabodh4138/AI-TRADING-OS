@@ -6,97 +6,91 @@ Enterprise Data Engine
 Module:
     base_downloader.py
 
-Purpose:
-    Defines the abstract interface for all market
-    data download providers.
+Purpose
+-------
+Defines the contract for all download providers.
+
+Every provider (NSE, Yahoo, Polygon, etc.)
+must implement this interface.
 
 Author:
     AI Trading OS
-
 =========================================================
 """
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+from abc import ABC
+from abc import abstractmethod
 from datetime import date
-from pathlib import Path
-from typing import Iterable
+
+from requests import Response
 
 
 class BaseDownloader(ABC):
     """
-    Enterprise downloader contract.
+    Base class for all download providers.
 
-    Every market data provider must inherit this class.
+    Responsibilities
+    ----------------
+    1. Create session
+    2. Verify connectivity
+    3. Download data
+    4. Close resources
 
-    Example Providers
-    -----------------
-    - NSE
-    - Yahoo Finance
-    - Polygon
-    - Alpha Vantage
-    - Custom CSV
+    This class MUST NOT know anything about:
+
+    - File saving
+    - Validation
+    - Database
     """
 
     @abstractmethod
     def initialize(self) -> None:
         """
         Initialize provider session.
-
-        Example:
-            - Create HTTP session
-            - Authenticate
-            - Load cookies
         """
         raise NotImplementedError
 
     @abstractmethod
     def health_check(self) -> bool:
         """
-        Verify provider is reachable.
-
-        Returns
-        -------
-        bool
-            True if provider is available.
+        Verify provider availability.
         """
         raise NotImplementedError
 
     @abstractmethod
-    def download_by_date(
+    def download(
         self,
         trade_date: date,
-        output_dir: Path,
-    ) -> Path:
+    ) -> Response:
         """
-        Download market data for one trading day.
+        Download market data for a single trading day.
+
+        Parameters
+        ----------
+        trade_date
+            Trading date.
 
         Returns
         -------
-        Path
-            Downloaded file.
-        """
-        raise NotImplementedError
+        Response
+            Raw HTTP response.
 
-    @abstractmethod
-    def download_range(
-        self,
-        dates: Iterable[date],
-        output_dir: Path,
-    ) -> list[Path]:
-        """
-        Download multiple trading days.
+        Notes
+        -----
+        This method MUST NOT:
 
-        Returns
-        -------
-        list[Path]
+        - Save files
+        - Validate response
+        - Load database
         """
+
         raise NotImplementedError
 
     @abstractmethod
     def close(self) -> None:
         """
-        Close provider session.
+        Release provider resources.
         """
         raise NotImplementedError
