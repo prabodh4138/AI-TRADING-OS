@@ -35,6 +35,7 @@ from __future__ import annotations
 
 from datetime import date
 from pathlib import Path
+from requests import Response
 
 
 class FileManager:
@@ -166,7 +167,51 @@ class FileManager:
         )
 
         return path
+        # ==================================================
+    # Save HTTP Response
+    # ==================================================
 
+    def save_response(
+        self,
+        trade_date: date,
+        response: Response,
+        prefix: str = "bhavcopy",
+    ) -> Path:
+        """
+        Save an HTTP response to a daily CSV file.
+
+        Parameters
+        ----------
+        trade_date
+            Trading date.
+
+        response
+            HTTP response returned by the downloader.
+
+        prefix
+            Filename prefix.
+
+        Returns
+        -------
+        Path
+            Saved file path.
+        """
+
+        filename = self.build_daily_filename(
+            trade_date=trade_date,
+            prefix=prefix,
+        )
+
+        path = self.build_path(
+            filename
+        )
+
+        self.save_text(
+            path=path,
+            text=response.text,
+        )
+
+        return path
     # ==================================================
     # Read
     # ==================================================
