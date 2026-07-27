@@ -7,9 +7,12 @@ Symbol Transformer
 
 from __future__ import annotations
 
+import time
+
 import pandas as pd
 
 from core.logger import get_logger
+from models.transformation_result import TransformationResult
 
 logger = get_logger()
 
@@ -17,7 +20,19 @@ logger = get_logger()
 class SymbolTransformer:
     """
     Transforms validated NSE Symbol Master DataFrame
-    into AI-TOS canonical schema.
+    into AI-TOS canonical format.
+
+    Responsibilities
+    ----------------
+    1. Rename columns
+    2. Normalize text
+    3. Convert data types
+    4. Produce transformation statistics
+
+    Notes
+    -----
+    Validation is performed by SymbolValidator.
+    Database loading is performed by DatabaseLoader.
     """
 
     COLUMN_MAPPING = {
@@ -51,6 +66,7 @@ class SymbolTransformer:
 
     def __init__(self):
         logger.debug("SymbolTransformer initialized.")
+        self.result = TransformationResult()
 
     # ==========================================================
     # Public API
@@ -58,32 +74,100 @@ class SymbolTransformer:
 
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Transform validated Symbol Master into AI-TOS format.
+        Transform validated Symbol Master DataFrame.
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            Validated DataFrame.
+
+        Returns
+        -------
+        pd.DataFrame
+            Canonical transformed DataFrame.
         """
+
+        start_time = time.perf_counter()
+
+        self.result.reset()
 
         logger.info("Starting Symbol Master transformation.")
 
-        transformed_df = df.copy(deep=True)
+        try:
 
-        self._rename_columns(transformed_df)
+            transformed_df = df.copy(deep=True)
 
-        transformed_df = transformed_df[self.CANONICAL_ORDER]
+            self._rename_columns(transformed_df)
 
-        self._normalize_text(transformed_df)
+            transformed_df = transformed_df[
+                self.CANONICAL_ORDER
+            ]
 
-        self._convert_data_types(transformed_df)
+            self._normalize_text(transformed_df)
 
-        logger.info("Symbol transformation completed successfully.")
-        logger.info("Rows transformed : {}", len(transformed_df))
-        logger.info("Columns mapped   : {}", len(transformed_df.columns))
+            self._convert_data_types(transformed_df)
 
-        return transformed_df
+            #
+            # Statistics
+            #
+
+            self.result.success = True
+            self.result.rows_processed = len(transformed_df)
+            self.result.columns_processed = len(
+                transformed_df.columns
+            )
+            self.result.transformation_time = (
+                time.perf_counter() - start_time
+            )
+
+            logger.info(
+                "Symbol transformation completed successfully."
+            )
+
+            logger.info(
+                "Rows transformed : {}",
+                self.result.rows_processed,
+            )
+
+            logger.info(
+                "Columns mapped : {}",
+                self.result.columns_processed,
+            )
+
+            logger.info(
+                "Transformation Time : {:.4f} sec",
+                self.result.transformation_time,
+            )
+
+            return transformed_df
+
+        except Exception as ex:
+
+            self.result.success = False
+
+            self.result.transformation_time = (
+                time.perf_counter() - start_time
+            )
+
+            self.result.add_error(str(ex))
+
+            logger.exception(
+                "Symbol transformation failed."
+            )
+
+            raise
 
     # ==========================================================
     # Column Mapping
     # ==========================================================
 
-    def _rename_columns(self, df: pd.DataFrame) -> None:
+    def _rename_columns(
+        self,
+        df: pd.DataFrame,
+    ) -> None:
+        """
+        Rename NSE columns to AI-TOS standard names.
+        """
 
         logger.info("Renaming columns...")
 
@@ -98,7 +182,19 @@ class SymbolTransformer:
     # Text Normalization
     # ==========================================================
 
-    def _normalize_text(self, df: pd.DataFrame) -> None:
+    def _normalize_text(
+        self,
+        df: pd.DataFrame,
+    ) -> None:
+        """
+        Normalize text fields.
+
+        Operations
+        ----------
+        • Strip leading/trailing spaces
+        • Collapse multiple spaces
+        • Convert empty strings to None
+        """
 
         logger.info("Normalizing text columns...")
 
@@ -108,10 +204,17 @@ class SymbolTransformer:
                 df[column]
                 .astype(str)
                 .str.strip()
-                .str.replace(r"\s+", " ", regex=True)
+                .str.replace(
+                    r"\s+",
+                    " ",
+                    regex=True,
+                )
             )
 
-            df.loc[df[column] == "", column] = None
+            df.loc[
+                df[column] == "",
+                column,
+            ] = None
 
         logger.info(
             "Normalized {} text columns.",
@@ -122,14 +225,20 @@ class SymbolTransformer:
     # Data Type Conversion
     # ==========================================================
 
-    def _convert_data_types(self, df: pd.DataFrame) -> None:
+    def _convert_data_types(
+        self,
+        df: pd.DataFrame,
+    ) -> None:
         """
-        Convert canonical columns to enterprise data types.
+        Convert canonical columns
+        to enterprise data types.
         """
 
         logger.info("Converting data types...")
 
-        # ---------- Date ----------
+        #
+        # Date
+        #
 
         df["listing_date"] = pd.to_datetime(
             df["listing_date"],
@@ -137,7 +246,9 @@ class SymbolTransformer:
             errors="coerce",
         )
 
-        # ---------- Numeric ----------
+        #
+        # Numeric
+        #
 
         df["paid_up_value"] = pd.to_numeric(
             df["paid_up_value"],
@@ -149,21 +260,34 @@ class SymbolTransformer:
             errors="coerce",
         )
 
-        df["market_lot"] = pd.to_numeric(
-            df["market_lot"],
-            errors="coerce",
-        ).astype("Int64")
+        df["market_lot"] = (
+            pd.to_numeric(
+                df["market_lot"],
+                errors="coerce",
+            )
+            .astype("Int64")
+        )
 
-        # ---------- Strings ----------
+        #
+        # String
+        #
 
-        string_columns = [
-            "symbol_code",
-            "company_name",
-            "series",
-            "isin",
-        ]
-
-        for column in string_columns:
+        for column in self.TEXT_COLUMNS:
             df[column] = df[column].astype("string")
 
-        logger.info("Data type conversion completed.")
+        logger.info(
+            "Data type conversion completed."
+        )
+
+    # ==========================================================
+    # Result
+    # ==========================================================
+
+    def transformation_result(
+        self,
+    ) -> TransformationResult:
+        """
+        Return latest transformation result.
+        """
+
+        return self.result
