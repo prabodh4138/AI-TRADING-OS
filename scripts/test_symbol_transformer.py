@@ -29,7 +29,13 @@ def main():
 
     print("\nPreview\n")
     print(transformed.head())
+    print("\nData Types\n")
+    print(transformed.dtypes)
+
+    print("\nNull Values\n")
+    print(transformed.isna().sum())
 
 
 if __name__ == "__main__":
     main()
+    
