@@ -404,7 +404,7 @@ class MarketDataLoader(BaseLoader):
     REQUIRED_COLUMNS: tuple[str, ...] = (
         "symbol",
         "series",
-        "timestamp",
+        "trading_date",
         "open",
         "high",
         "low",

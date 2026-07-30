@@ -54,7 +54,7 @@ class TestDataTransformer:
                     " EQ ",
                     " EQ ",
                 ],
-                "TIMESTAMP": [
+                "trading_date": [
                     "24-Jul-2026",
                     "25-Jul-2026",
                 ],
@@ -132,7 +132,7 @@ class TestDataTransformer:
         expected_columns = [
             "symbol",
             "series",
-            "timestamp",
+            "trading_date",
             "open",
             "high",
             "low",
@@ -444,7 +444,7 @@ class TestDataTransformer:
         )
 
         assert pd.api.types.is_datetime64_any_dtype(
-            converted_df["timestamp"]
+            converted_df["trading_date"]
         )
 
     def test_convert_date_columns_invalid_date(
@@ -455,7 +455,7 @@ class TestDataTransformer:
         """
         dataframe = pd.DataFrame(
             {
-                "TIMESTAMP": [
+                "trading_date": [
                     "Invalid Date",
                 ],
             }
@@ -474,7 +474,7 @@ class TestDataTransformer:
         )
 
         assert pd.isna(
-            converted_df.loc[0, "timestamp"]
+            converted_df.loc[0, "trading_date"]
         )
 
     def test_convert_date_columns_missing_columns(
@@ -659,7 +659,7 @@ class TestDataTransformer:
         expected_columns = [
             "symbol",
             "series",
-            "timestamp",
+            "trading_date",
             "open",
             "high",
             "low",
@@ -763,13 +763,13 @@ class TestDataTransformer:
         )
 
         assert pd.api.types.is_datetime64_any_dtype(
-            transformed_df["timestamp"]
+            transformed_df["trading_date"]
         )
 
         expected_order = [
             "symbol",
             "series",
-            "timestamp",
+            "trading_date",
             "open",
             "high",
             "low",
@@ -841,7 +841,7 @@ class TestDataTransformer:
             {
                 "SYMBOL": ["ABC"],
                 "SERIES": ["EQ"],
-                "TIMESTAMP": ["01-01-2026"],
+                "trading_date": ["01-01-2026"],
                 "OPEN": ["INVALID"],
                 "HIGH": ["100"],
                 "LOW": ["90"],
@@ -875,7 +875,7 @@ class TestDataTransformer:
             {
                 "SYMBOL": ["ABC"],
                 "SERIES": ["EQ"],
-                "TIMESTAMP": ["INVALID"],
+                "trading_date": ["INVALID"],
             }
         )
 
@@ -886,7 +886,7 @@ class TestDataTransformer:
         )
 
         assert pd.isna(
-            transformed_df.loc[0, "timestamp"]
+            transformed_df.loc[0, "trading_date"]
         )
 
     def test_transform_missing_optional_columns(

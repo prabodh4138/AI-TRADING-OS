@@ -59,7 +59,7 @@ class DataTransformer:
     )
 
     DATE_COLUMNS: tuple[str, ...] = (
-        "TIMESTAMP",
+        "trading_date",
     )
 
     STRING_COLUMNS: tuple[str, ...] = (
@@ -122,6 +122,15 @@ class DataTransformer:
         df = self._clean_strings(df)
         df = self._convert_numeric_columns(df)
         df = self._convert_date_columns(df)
+
+        # Canonical ETL contract
+        if "trading_date" in df.columns:
+            df = df.rename(
+                columns={
+            "trading_date": "trading_date"
+        }
+    )
+
         df = self._add_derived_columns(df)
         df = self._reorder_columns(df)
 
@@ -468,7 +477,7 @@ class DataTransformer:
         preferred_order = [
             "symbol",
             "series",
-            "timestamp",
+            "trading_date",
             "open",
             "high",
             "low",

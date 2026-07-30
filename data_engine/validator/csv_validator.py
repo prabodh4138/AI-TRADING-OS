@@ -90,8 +90,6 @@ class CSVValidator:
         self,
         dataframe: pd.DataFrame,
     ) -> pd.DataFrame:
-        dataframe = dataframe.copy()
-        dataframe.columns = (dataframe.columns.astype(str).str.strip())
         """
         Validate a DataFrame.
 
@@ -110,6 +108,11 @@ class CSVValidator:
         CSVValidationException
             If validation fails.
         """
+
+        dataframe = dataframe.copy()
+        dataframe.columns = (
+            dataframe.columns.astype(str).str.strip()
+        )
 
         self.logger.info(
             "Starting CSV validation."

@@ -9,6 +9,8 @@ from database.models.indicator_definition import IndicatorDefinition
 from database.models.indicator_run_history import IndicatorRunHistory
 from database.models.market_data import MarketData
 from database.models.symbol import Symbol
+from .import_batch import ImportBatch
+from .import_execution import ImportExecution
 
 __all__ = [
     "Symbol",
@@ -18,4 +20,6 @@ __all__ = [
     "IndicatorRunHistory",
     "DownloadHistory",
     "DownloadStatus",
+    "ImportBatch",
+    "ImportExecution",
 ]
