@@ -1,27 +1,75 @@
-# Virtual Environment
-.venv/
+# ==============================================================================
+# AI TRADING OS - GIT IGNORE SPECIFICATION
+# Excludes all raw stock data, market bhavcopies, runtime ledgers & build caches
+# Keeps all source code, tests, configs, documentation, and frontend intact
+# ==============================================================================
 
-# Python
+# Environment & Secrets
+.env
+*.env
+.env.*
+!.env.example
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Python Cache & Bytecode
 __pycache__/
 *.py[cod]
-*.pyo
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
 
-# Environment
-.env
-
-# Logs
+# Logs & Runtime Diagnostics
 logs/
 *.log
 
-# Backup
-backup/
+# ==============================================================================
+# STOCK MARKET DATA EXCLUSIONS (STRICT)
+# Excludes historical NSE bhavcopies, symbol dumps, snapshots, and runtime state
+# ==============================================================================
+downloads/
+data/runs/
+data/incoming/
+data/paper_trading_ledger.json
+data/paper_trading_oos_ledger.json
+data/system_alerts.json
+reports/output/
 
-# VS Code
-.vscode/
+# Exclude large binary/tabular data formats
+*.parquet
+*.feather
+*.h5
+*.hdf5
+*.sqlite
+*.sqlite3
+*.db
 
-# Streamlit
-.streamlit/
+# Exclude raw CSV market datasets across all directories
+# (Except small sample fixtures required for unit tests)
+*.csv
+!sample_data/*.csv
 
-# OS
-Thumbs.db
+# ==============================================================================
+# FRONTEND BUILD ARTIFACTS & DEPENDENCIES
+# ==============================================================================
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+node_modules/
+dist/
+
+# ==============================================================================
+# OS & EDITOR ARTIFACTS
+# ==============================================================================
 .DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*.swo

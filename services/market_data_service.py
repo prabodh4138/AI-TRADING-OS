@@ -1,4 +1,4 @@
-"""
+﻿"""
 AI Trading Operating System
 Market Data Service
 
@@ -6,24 +6,19 @@ Business Service for Market Data Management
 """
 
 from __future__ import annotations
-from html import entities
-import pandas as pd
 
 from datetime import date
 from uuid import UUID
 
-from streamlit import dataframe
+import pandas as pd
 
 from database.models.market_data import MarketData
 from database.unit_of_work import UnitOfWork
-
 from dto.market_data_dto import MarketDataCreateDTO
-
 from services.base_service import BaseService
-
+from services.market_data_mapper import MarketDataMapper
 from validators.base_validator import ValidationError
 from validators.market_data_validator import MarketDataValidator
-from services.market_data_mapper import MarketDataMapper
 
 
 class MarketDataService(BaseService):
@@ -79,33 +74,67 @@ class MarketDataService(BaseService):
 
             return data
 
+    # ---------------------------------------------------------
+    # Import
+    # ---------------------------------------------------------
+
     def import_market_data(
         self,
         dataframe: pd.DataFrame,
         *,
         batch_size: int = 1000,
+        universe_code: str | None = None,
     ) -> int:
         """
         Import transformed market data into the database.
 
-        Parameters
-        ----------
-        dataframe
-            Transformed pandas DataFrame.
-
-        batch_size
-            Number of records inserted per batch.
-
-        Returns
-        -------
-        int
-            Number of inserted records.
+        When universe_code is supplied, only symbols belonging to
+        the current active membership of that universe are imported.
         """
 
         if dataframe.empty:
             return 0
 
         dataframe = dataframe.copy()
+
+        # ---------------------------------------------
+        # Optional Universe Filter
+        # ---------------------------------------------
+
+        if universe_code:
+
+            with UnitOfWork() as uow:
+
+                universe = uow.universes.get_by_universe_code(
+                    universe_code
+                )
+
+                if universe is None:
+                    raise ValidationError(
+                        f"Unknown universe: {universe_code}"
+                    )
+
+                universe_symbols = (
+                    uow.universes.get_constituent_symbols(
+                        universe.universe_id,
+                        active_only=True,
+                    )
+                )
+
+                universe_symbol_codes = {
+                    symbol.symbol_code
+                    for symbol in universe_symbols
+                }
+
+            dataframe = dataframe[
+                dataframe["symbol"]
+                .astype(str)
+                .str.strip()
+                .isin(universe_symbol_codes)
+            ].copy()
+
+            if dataframe.empty:
+                return 0
 
         # ---------------------------------------------
         # Resolve Symbol IDs
@@ -122,10 +151,8 @@ class MarketDataService(BaseService):
                 .tolist()
             )
 
-            symbol_map = (
-                uow.symbols.get_symbol_id_map(
-                    symbol_codes
-                )
+            symbol_map = uow.symbols.get_symbol_id_map(
+                symbol_codes
             )
 
         dataframe["symbol_id"] = (
@@ -188,7 +215,9 @@ class MarketDataService(BaseService):
     ) -> MarketData | None:
 
         with UnitOfWork() as uow:
-            return uow.market_data.get_by_id(market_data_id)
+            return uow.market_data.get_by_id(
+                market_data_id
+            )
 
     def get_latest_price(
         self,
@@ -196,7 +225,9 @@ class MarketDataService(BaseService):
     ) -> MarketData | None:
 
         with UnitOfWork() as uow:
-            return uow.market_data.get_latest_price(symbol_id)
+            return uow.market_data.get_latest_price(
+                symbol_id
+            )
 
     def get_by_symbol_and_date(
         self,
@@ -244,7 +275,9 @@ class MarketDataService(BaseService):
     ) -> int:
 
         with UnitOfWork() as uow:
-            return uow.market_data.count_by_symbol(symbol_id)
+            return uow.market_data.count_by_symbol(
+                symbol_id
+            )
 
     def get_latest_trading_date(self):
 

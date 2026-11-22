@@ -1,57 +1,21 @@
-"""
-AI Trading Operating System
-Database Session Manager
-"""
-
+"""Lazy SQLAlchemy session factory; importing AI-TOS never requires a live DB."""
 from __future__ import annotations
-
 from contextlib import contextmanager
 from typing import Generator
-
 from sqlalchemy.orm import Session, sessionmaker
-
-from core.logger import get_logger
 from database.connection import database
+from core.logger import get_logger
+logger=get_logger()
+SessionFactory=sessionmaker(autoflush=False, autocommit=False, expire_on_commit=False)
 
-
-logger = get_logger()
-
-
-# ---------------------------------------------------------------------
-# Session Factory
-# ---------------------------------------------------------------------
-
-SessionFactory = sessionmaker(
-    bind=database.engine,
-    autoflush=False,
-    autocommit=False,
-    expire_on_commit=False,
-)
-
-
-# ---------------------------------------------------------------------
-# Context Manager
-# ---------------------------------------------------------------------
+def new_session() -> Session:
+    return SessionFactory(bind=database.engine)
 
 @contextmanager
-def get_session() -> Generator[Session, None, None]:
-    """
-    Create a transactional database session.
-
-    Usage:
-        with get_session() as session:
-            ...
-    """
-    session = SessionFactory()
-
+def get_session() -> Generator[Session,None,None]:
+    session=new_session()
     try:
-        yield session
-        session.commit()
-
+        yield session; session.commit()
     except Exception:
-        session.rollback()
-        logger.exception("Database transaction rolled back.")
-        raise
-
-    finally:
-        session.close()
+        session.rollback(); logger.exception("Database transaction rolled back."); raise
+    finally: session.close()

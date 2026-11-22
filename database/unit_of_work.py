@@ -1,4 +1,4 @@
-"""
+﻿"""
 AI Trading Operating System
 Enterprise Unit of Work
 """
@@ -7,13 +7,25 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from database.repositories.symbol_repository import SymbolRepository
-from database.repositories.market_data_repository import MarketDataRepository
-from database.repositories.indicator_repository import IndicatorRepository
 from database.repositories.download_history_repository import (
     DownloadHistoryRepository,
 )
-from database.session import SessionFactory
+from database.repositories.import_batch_repository import (
+    ImportBatchRepository,
+)
+from database.repositories.indicator_repository import (
+    IndicatorRepository,
+)
+from database.repositories.market_data_repository import (
+    MarketDataRepository,
+)
+from database.repositories.symbol_repository import (
+    SymbolRepository,
+)
+from database.repositories.universe_repository import (
+    UniverseRepository,
+)
+from database.session import new_session
 
 
 class UnitOfWork:
@@ -22,49 +34,63 @@ class UnitOfWork:
 
     Maintains a single database session across all repositories.
 
-    Usage:
-        with UnitOfWork() as uow:
-            symbols = uow.symbols.get_all()
-            market = uow.market_data.get_latest_price(symbol_id)
-            indicators = uow.indicators.get_latest(symbol_id)
+    All repositories share the same SQLAlchemy session
+    and therefore participate in the same transaction.
     """
 
     def __init__(self) -> None:
-        self.session: Session = SessionFactory()
+        self.session: Session = new_session()
 
         # -------------------------------------------------------------
         # Repositories
         # -------------------------------------------------------------
-        self.symbols = SymbolRepository(self.session)
-        self.market_data = MarketDataRepository(self.session)
-        self.indicators = IndicatorRepository(self.session)
-        self.download_history = DownloadHistoryRepository(self.session)
+
+        self.symbols = SymbolRepository(
+            self.session
+        )
+
+        self.market_data = MarketDataRepository(
+            self.session
+        )
+
+        self.indicators = IndicatorRepository(
+            self.session
+        )
+
+        self.download_history = DownloadHistoryRepository(
+            self.session
+        )
+
+        self.import_batches = ImportBatchRepository(
+            self.session
+        )
+
+        self.universes = UniverseRepository(
+            self.session
+        )
+
     # -------------------------------------------------------------
     # Transaction Management
     # -------------------------------------------------------------
 
     def commit(self) -> None:
-        """
-        Commit current transaction.
-        """
+        """Commit the current transaction."""
+
         self.session.commit()
 
     def rollback(self) -> None:
-        """
-        Roll back current transaction.
-        """
+        """Roll back the current transaction."""
+
         self.session.rollback()
 
     def flush(self) -> None:
-        """
-        Flush pending SQL statements.
-        """
+        """Flush pending SQL statements."""
+
         self.session.flush()
 
     def close(self) -> None:
-        """
-        Close database session.
-        """
+        """Close the database session."""
+
         self.session.close()
 
     # -------------------------------------------------------------
@@ -88,5 +114,5 @@ class UnitOfWork:
 
         self.close()
 
-        # Never suppress exceptions
+        # Never suppress exceptions.
         return False

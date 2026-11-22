@@ -1,15 +1,4 @@
-"""
-AI Trading Operating System
-SQLAlchemy Declarative Base
-"""
-
-from __future__ import annotations
-
+"""SQLAlchemy declarative base."""
 from sqlalchemy.orm import DeclarativeBase
-
-
 class Base(DeclarativeBase):
-    """
-    Base class for all ORM models.
-    """
     pass

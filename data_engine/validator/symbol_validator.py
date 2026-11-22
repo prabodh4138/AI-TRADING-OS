@@ -1,4 +1,4 @@
-"""
+﻿"""
 AI Trading Operating System
 Sprint 8.5.3
 
@@ -26,7 +26,8 @@ class SymbolValidator:
     1. Validate required schema.
     2. Validate mandatory fields.
     3. Validate duplicate symbols.
-    4. Generate validation statistics.
+    4. Validate duplicate ISIN numbers.
+    5. Generate validation statistics.
     """
 
     REQUIRED_COLUMNS = [
@@ -65,6 +66,7 @@ class SymbolValidator:
             self._validate_schema(df)
             self._validate_blank_values(df)
             self._validate_duplicate_symbols(df)
+            self._validate_duplicate_isins(df)
 
             self.result.success = True
             self.result.rows_checked = len(df)
@@ -180,6 +182,46 @@ class SymbolValidator:
             )
 
         logger.info("No duplicate symbols found.")
+
+    def _validate_duplicate_isins(
+        self,
+        df: pd.DataFrame,
+    ) -> None:
+        """
+        Detect duplicate ISIN numbers.
+
+        ISIN is a unique security identifier, so the same
+        non-blank ISIN must not appear against multiple rows
+        in the Symbol Master source.
+        """
+
+        logger.info("Checking duplicate ISIN numbers...")
+
+        normalized_isin = (
+            df["ISIN NUMBER"]
+            .astype(str)
+            .str.strip()
+            .str.upper()
+        )
+
+        duplicates = normalized_isin.duplicated().sum()
+
+        if duplicates > 0:
+            duplicate_values = (
+                normalized_isin[
+                    normalized_isin.duplicated(keep=False)
+                ]
+                .drop_duplicates()
+                .tolist()
+            )
+
+            raise ValueError(
+                "Duplicate ISIN NUMBER values found: "
+                f"{duplicates}. "
+                f"Values: {duplicate_values}"
+            )
+
+        logger.info("No duplicate ISIN numbers found.")
 
     # ------------------------------------------------------------------
     # Validation Result

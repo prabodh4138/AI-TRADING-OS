@@ -6,11 +6,15 @@ Import Batch Service
 
 Business service responsible for coordinating
 ImportBatch and ImportExecution.
+
+This service DOES NOT own transactions.
+The caller (MarketDataPipeline) is responsible for
+commit() and rollback().
 """
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from common.enums.import_status import ImportStatus
@@ -23,18 +27,19 @@ from database.repositories.import_batch_repository import (
 
 class ImportBatchService:
     """
-    Business service for batch imports.
+    Business service responsible for import workflow.
     """
 
     def __init__(
         self,
         repository: ImportBatchRepository,
-    ):
+    ) -> None:
+
         self.repository = repository
 
-    # ---------------------------------------------------------
+    # =====================================================
     # Batch
-    # ---------------------------------------------------------
+    # =====================================================
 
     def start_batch(
         self,
@@ -48,7 +53,7 @@ class ImportBatchService:
         batch = ImportBatch(
             batch_name=batch_name,
             status=ImportStatus.RUNNING,
-            started_at=datetime.utcnow(),
+            started_at=datetime.now(timezone.utc),
             total_files=total_files,
             successful_files=0,
             failed_files=0,
@@ -57,14 +62,41 @@ class ImportBatchService:
             total_rows_failed=0,
         )
 
-        self.repository.create_batch(batch)
-        self.repository.save()
+        return self.repository.create_batch(batch)
 
-        return batch
+    def complete_batch(
+        self,
+        batch: ImportBatch,
+    ) -> None:
+        """
+        Marks batch as completed.
+        """
 
-    # ---------------------------------------------------------
+        batch.completed_at = datetime.now(timezone.utc)
+
+        if batch.failed_files == 0:
+            batch.status = ImportStatus.SUCCESS
+        else:
+            batch.status = ImportStatus.FAILED
+
+        self.repository.update_batch(batch)
+
+    def fail_batch(
+        self,
+        batch: ImportBatch,
+    ) -> None:
+        """
+        Marks batch as failed.
+        """
+
+        batch.status = ImportStatus.FAILED
+        batch.completed_at = datetime.now(timezone.utc)
+
+        self.repository.update_batch(batch)
+
+    # =====================================================
     # Execution
-    # ---------------------------------------------------------
+    # =====================================================
 
     def register_execution(
         self,
@@ -72,7 +104,7 @@ class ImportBatchService:
         file_name: str,
     ) -> ImportExecution:
         """
-        Creates execution record.
+        Registers a CSV file execution.
         """
 
         execution = ImportExecution(
@@ -81,21 +113,22 @@ class ImportBatchService:
             status=ImportStatus.PENDING,
         )
 
-        self.repository.create_execution(execution)
-        self.repository.save()
-
-        return execution
+        return self.repository.create_execution(
+            execution
+        )
 
     def start_execution(
         self,
         execution: ImportExecution,
     ) -> None:
+        """
+        Starts execution.
+        """
 
         execution.status = ImportStatus.RUNNING
-        execution.started_at = datetime.utcnow()
+        execution.started_at = datetime.now(timezone.utc)
 
         self.repository.update_execution(execution)
-        self.repository.save()
 
     def finish_execution(
         self,
@@ -104,23 +137,29 @@ class ImportBatchService:
         rows_imported: int,
         rows_failed: int,
         message: str | None = None,
+        exception: str | None = None,
     ) -> None:
         """
-        Marks execution complete.
+        Completes execution and updates
+        aggregate batch statistics.
         """
 
-        execution.completed_at = datetime.utcnow()
+        execution.completed_at = datetime.now(
+            timezone.utc
+        )
 
         execution.rows_read = rows_read
         execution.rows_imported = rows_imported
         execution.rows_failed = rows_failed
 
         execution.message = message
+        execution.exception = exception
 
-        if rows_failed == 0:
-            execution.status = ImportStatus.SUCCESS
-        else:
-            execution.status = ImportStatus.FAILED
+        execution.status = (
+            ImportStatus.SUCCESS
+            if rows_failed == 0
+            else ImportStatus.FAILED
+        )
 
         batch = execution.batch
 
@@ -133,50 +172,8 @@ class ImportBatchService:
         else:
             batch.failed_files += 1
 
-        self.repository.save()
+        self.repository.update_execution(
+            execution
+        )
 
-    # ---------------------------------------------------------
-    # Batch Completion
-    # ---------------------------------------------------------
-
-    def complete_batch(
-        self,
-        batch: ImportBatch,
-    ) -> None:
-        """
-        Finalizes import batch.
-        """
-
-        batch.completed_at = datetime.utcnow()
-
-        if batch.failed_files == 0:
-            batch.status = ImportStatus.SUCCESS
-        else:
-            batch.status = ImportStatus.FAILED
-
-        self.repository.save()
-
-    # ---------------------------------------------------------
-    # Error Handling
-    # ---------------------------------------------------------
-
-    def fail_batch(
-        self,
-        batch: ImportBatch,
-        message: str | None = None,
-    ) -> None:
-        """
-        Marks entire batch as failed.
-        """
-
-        batch.status = ImportStatus.FAILED
-        batch.completed_at = datetime.utcnow()
-
-        self.repository.save()
-
-    def rollback(self) -> None:
-        """
-        Rollback current transaction.
-        """
-
-        self.repository.rollback()
+        self.repository.update_batch(batch)

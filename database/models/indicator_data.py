@@ -9,7 +9,7 @@ import uuid
 from decimal import Decimal
 from datetime import date
 
-from sqlalchemy import Date, ForeignKey, Numeric, UniqueConstraint
+from sqlalchemy import Date, ForeignKey, Integer, Numeric, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -103,8 +103,8 @@ class IndicatorData(BaseModel):
     # =========================
     # SuperTrend
     # =========================
-    #supertrend: Mapped[Decimal | None] = mapped_column(Numeric(18, 4))
-    #supertrend_direction: Mapped[int | None] = mapped_column()
+    supertrend: Mapped[Decimal | None] = mapped_column(Numeric(18, 4))
+    supertrend_direction: Mapped[int | None] = mapped_column(Integer)
 
     # =========================
     # Volume

@@ -1,0 +1,114 @@
+# AI Trading Operating System
+# Sector Intelligence and Rotation Configuration
+# Links NIFTY 500 constituents to standard sectors and enforces concentration limits.
+
+sectors:
+  - id: "FIN_SERVICE"
+    name: "Financial Services"
+    index_code: "NIFTY FIN SERVICE"
+    max_portfolio_exposure_pct: 25.0
+    industry_aliases:
+      - "Financial Services"
+      - "Banks"
+      - "Insurance"
+      - "Finance"
+
+  - id: "IT"
+    name: "Information Technology"
+    index_code: "NIFTY IT"
+    max_portfolio_exposure_pct: 20.0
+    industry_aliases:
+      - "Information Technology"
+      - "Software"
+      - "IT Services"
+
+  - id: "AUTO"
+    name: "Automobile & Auto Components"
+    index_code: "NIFTY AUTO"
+    max_portfolio_exposure_pct: 20.0
+    industry_aliases:
+      - "Automobile and Auto Components"
+      - "Auto"
+      - "Automobiles"
+
+  - id: "HEALTHCARE"
+    name: "Healthcare & Pharmaceuticals"
+    index_code: "NIFTY PHARMA"
+    max_portfolio_exposure_pct: 20.0
+    industry_aliases:
+      - "Healthcare"
+      - "Pharmaceuticals"
+      - "Biotechnology"
+
+  - id: "FMCG"
+    name: "Fast Moving Consumer Goods"
+    index_code: "NIFTY FMCG"
+    max_portfolio_exposure_pct: 20.0
+    industry_aliases:
+      - "Fast Moving Consumer Goods"
+      - "Consumer Goods"
+
+  - id: "METALS"
+    name: "Metals & Mining"
+    index_code: "NIFTY METAL"
+    max_portfolio_exposure_pct: 15.0
+    industry_aliases:
+      - "Metals & Mining"
+      - "Metals"
+      - "Mining"
+
+  - id: "ENERGY"
+    name: "Oil Gas & Consumable Fuels"
+    index_code: "NIFTY ENERGY"
+    max_portfolio_exposure_pct: 15.0
+    industry_aliases:
+      - "Oil Gas & Consumable Fuels"
+      - "Oil & Gas"
+      - "Power"
+      - "Energy"
+
+  - id: "CAP_GOODS"
+    name: "Capital Goods & Manufacturing"
+    index_code: "NIFTY INFRA"
+    max_portfolio_exposure_pct: 15.0
+    industry_aliases:
+      - "Capital Goods"
+      - "Industrial Manufacturing"
+
+  - id: "CONSUMER_SVC"
+    name: "Consumer Services"
+    index_code: "NIFTY 50"
+    max_portfolio_exposure_pct: 15.0
+    industry_aliases:
+      - "Consumer Services"
+      - "Consumer Durables"
+
+  - id: "CONSTRUCTION"
+    name: "Construction & Materials"
+    index_code: "NIFTY INFRA"
+    max_portfolio_exposure_pct: 15.0
+    industry_aliases:
+      - "Construction"
+      - "Construction Materials"
+
+  - id: "REALTY"
+    name: "Realty"
+    index_code: "NIFTY REALTY"
+    max_portfolio_exposure_pct: 10.0
+    industry_aliases:
+      - "Realty"
+      - "Real Estate"
+
+  - id: "TELECOM"
+    name: "Telecommunication"
+    index_code: "NIFTY 50"
+    max_portfolio_exposure_pct: 10.0
+    industry_aliases:
+      - "Telecommunication"
+      - "Telecom"
+
+settings:
+  default_max_sector_exposure_pct: 20.0
+  rotation_lookback_days: [5, 20, 60]
+  breadth_participation_threshold_pct: 60.0
+  constituent_source_csv: "downloads/raw/universes/NIFTY500.csv"

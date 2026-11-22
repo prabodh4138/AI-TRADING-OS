@@ -1,4 +1,4 @@
-"""
+﻿"""
 AI Trading Operating System
 Symbol Master Model
 """
@@ -8,19 +8,17 @@ from __future__ import annotations
 import uuid
 from datetime import date
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, Date, Integer, Numeric, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from typing import TYPE_CHECKING
-
 
 from database.base_model import BaseModel
 
 if TYPE_CHECKING:
     from .market_data import MarketData
     from .indicator_data import IndicatorData
-
 
 
 class Symbol(BaseModel):
@@ -58,6 +56,12 @@ class Symbol(BaseModel):
         String(20),
         nullable=False,
         default="EQUITY",
+    )
+
+    # NSE Symbol Master series, e.g. EQ, BE.
+    series: Mapped[str | None] = mapped_column(
+        String(10),
+        nullable=True,
     )
 
     sector: Mapped[str | None] = mapped_column(
@@ -103,10 +107,12 @@ class Symbol(BaseModel):
         default=False,
         nullable=False,
     )
+
     market_data: Mapped[list["MarketData"]] = relationship(
         back_populates="symbol",
         cascade="all, delete-orphan",
     )
+
     indicator_data: Mapped[list["IndicatorData"]] = relationship(
         back_populates="symbol",
         cascade="all, delete-orphan",

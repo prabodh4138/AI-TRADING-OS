@@ -1,0 +1,5 @@
+universe:
+  name: NIFTY_500
+  mode: local_file
+  symbols_file: data/universe/nifty500.csv
+  allow_all_symbols_if_missing: false

@@ -1,0 +1,85 @@
+# AI Trading Operating System
+# Market Index Catalogue Configuration
+# Configurable catalogue so indices can be added, retired, or replaced without code rewrites.
+
+indices:
+  broad_market:
+    - code: "NIFTY 50"
+      name: "Nifty 50 Index"
+      category: "BROAD"
+      is_benchmark: true
+      is_core: true
+      active: true
+    - code: "NIFTY 500"
+      name: "Nifty 500 Index"
+      category: "BROAD"
+      is_benchmark: false
+      is_core: true
+      active: true
+    - code: "NIFTY MIDCAP 100"
+      name: "Nifty Midcap 100"
+      category: "MIDCAP"
+      is_benchmark: false
+      is_core: true
+      active: true
+
+  banking_finance:
+    - code: "NIFTY BANK"
+      name: "Nifty Bank Index"
+      category: "BANKING"
+      is_benchmark: false
+      is_core: true
+      active: true
+    - code: "NIFTY FIN SERVICE"
+      name: "Nifty Financial Services Index"
+      category: "FINANCIAL"
+      is_benchmark: false
+      is_core: true
+      active: true
+
+  sectors:
+    - code: "NIFTY IT"
+      name: "Nifty IT Index"
+      category: "SECTORAL"
+      sector_id: "IT"
+      active: true
+    - code: "NIFTY AUTO"
+      name: "Nifty Auto Index"
+      category: "SECTORAL"
+      sector_id: "AUTO"
+      active: true
+    - code: "NIFTY FMCG"
+      name: "Nifty FMCG Index"
+      category: "SECTORAL"
+      sector_id: "FMCG"
+      active: true
+    - code: "NIFTY PHARMA"
+      name: "Nifty Pharma Index"
+      category: "SECTORAL"
+      sector_id: "HEALTHCARE"
+      active: true
+    - code: "NIFTY METAL"
+      name: "Nifty Metal Index"
+      category: "SECTORAL"
+      sector_id: "METALS"
+      active: true
+    - code: "NIFTY ENERGY"
+      name: "Nifty Energy Index"
+      category: "SECTORAL"
+      sector_id: "ENERGY"
+      active: true
+    - code: "NIFTY REALTY"
+      name: "Nifty Realty Index"
+      category: "SECTORAL"
+      sector_id: "REALTY"
+      active: true
+    - code: "NIFTY INFRA"
+      name: "Nifty Infrastructure Index"
+      category: "THEMATIC"
+      sector_id: "INFRA"
+      active: true
+
+settings:
+  stale_threshold_days: 3
+  missing_data_policy: "SAFE_FALLBACK"  # Options: REJECT, SAFE_FALLBACK, EXCLUDE_INDEX
+  min_history_bars: 30

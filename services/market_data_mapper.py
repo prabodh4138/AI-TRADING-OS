@@ -1,4 +1,4 @@
-"""
+﻿"""
 AI Trading Operating System
 Market Data Mapper
 """
@@ -14,52 +14,71 @@ from database.models.market_data import MarketData
 
 class MarketDataMapper:
     """
-    Converts transformed pandas DataFrames into
+    Convert canonical market-data DataFrames into
     MarketData ORM entities.
 
-    This class belongs to the ETL layer and is
-    responsible only for object mapping.
-
-    It performs no database operations.
+    This class performs object mapping only.
+    It does not validate business rules or access
+    the database.
     """
 
     def __init__(self) -> None:
-        """
-        Initialize mapper.
-        """
+        self.logger = logging.getLogger(self.__class__.__name__)
 
-        self.logger = logging.getLogger(
-            self.__class__.__name__
-        )
     def dataframe_to_entities(
         self,
         dataframe: pd.DataFrame,
     ) -> list[MarketData]:
         """
-        Convert a transformed pandas DataFrame into a list
-        of MarketData ORM entities.
+        Convert canonical market-data rows into ORM entities.
 
-        Parameters
-        ----------
-        dataframe : pd.DataFrame
-            Validated and transformed market data.
+        Expected canonical columns:
 
-        Returns
-        -------
-        list[MarketData]
-            ORM entities ready for persistence.
+        symbol_id
+        trading_date
+        open
+        high
+        low
+        close
+        volume
+
+        Optional:
+
+        adjusted_close
+        delivery_volume
+        delivery_percent
+        turnover
+        vwap
+        trade_count
         """
 
         if dataframe.empty:
-            self.logger.info(
-                "Received empty dataframe."
-            )
+            self.logger.info("Received empty dataframe.")
             return []
+
+        required_columns = {
+            "symbol_id",
+            "trading_date",
+            "open",
+            "high",
+            "low",
+            "close",
+            "volume",
+        }
+
+        missing_columns = sorted(
+            required_columns.difference(dataframe.columns)
+        )
+
+        if missing_columns:
+            raise ValueError(
+                "Missing required market-data column(s): "
+                + ", ".join(missing_columns)
+            )
 
         entities: list[MarketData] = []
 
         for row in dataframe.itertuples(index=False):
-
             entity = MarketData(
                 symbol_id=row.symbol_id,
                 trading_date=row.trading_date,
@@ -67,10 +86,37 @@ class MarketDataMapper:
                 high_price=row.high,
                 low_price=row.low,
                 close_price=row.close,
-                last_price=row.last,
-                previous_close=row.prevclose,
-                total_traded_quantity=row.tottrdqty,
-                total_traded_value=row.tottrdval,
+                adjusted_close=getattr(
+                    row,
+                    "adjusted_close",
+                    None,
+                ),
+                volume=row.volume,
+                delivery_volume=getattr(
+                    row,
+                    "delivery_volume",
+                    None,
+                ),
+                delivery_percent=getattr(
+                    row,
+                    "delivery_percent",
+                    None,
+                ),
+                trade_count=getattr(
+                    row,
+                    "trade_count",
+                    None,
+                ),
+                turnover=getattr(
+                    row,
+                    "turnover",
+                    None,
+                ),
+                vwap=getattr(
+                    row,
+                    "vwap",
+                    None,
+                ),
             )
 
             entities.append(entity)

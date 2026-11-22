@@ -1,13 +1,12 @@
 database:
+  url: ""
   host: localhost
   port: 5433
   name: ai_trading_os
   user: postgres
-  password: Sanju@9441
-
+  password: ""
 pool:
   size: 10
   overflow: 20
   recycle: 3600
-
 echo_sql: false

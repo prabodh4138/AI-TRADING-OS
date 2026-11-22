@@ -1,3 +1,6 @@
 risk:
   max_positions: 20
-  max_risk_per_trade: 2
+  max_risk_per_trade: 1.0
+  max_portfolio_risk: 10.0
+  atr_stop_multiplier: 2.0
+  reward_risk_ratio: 2.0

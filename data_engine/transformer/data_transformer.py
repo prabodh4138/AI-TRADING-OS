@@ -1,5 +1,4 @@
-"""
-=========================================================
+﻿"""
 AI Trading OS
 Enterprise Data Engine
 
@@ -8,27 +7,8 @@ Module:
 
 Purpose
 -------
-Transform validated market data into a clean,
-typed DataFrame ready for database loading.
-
-Responsibilities
-----------------
-1. Normalize DataFrame
-2. Clean string values
-3. Convert numeric columns
-4. Convert date columns
-5. Add derived columns
-
-This class MUST NOT
-
-- Read CSV files
-- Validate data
-- Insert into database
-- Download market data
-
-Author:
-    AI Trading OS
-=========================================================
+Transform validated NSE market data into a clean,
+typed canonical DataFrame ready for database loading.
 """
 
 from __future__ import annotations
@@ -43,19 +23,46 @@ class DataTransformer:
     """
     Enterprise Data Transformer.
 
-    Performs data transformation without modifying
-    the original DataFrame.
+    Converts validated NSE Bhavcopy data into the
+    canonical internal market-data representation.
     """
 
+    # --------------------------------------------------
+    # Raw NSE → canonical field mapping
+    # --------------------------------------------------
+
+    COLUMN_MAPPING: dict[str, str] = {
+        "symbol": "symbol",
+        "series": "series",
+        "date1": "trading_date",
+        "prev_close": "prevclose",
+        "open_price": "open",
+        "high_price": "high",
+        "low_price": "low",
+        "last_price": "last",
+        "close_price": "close",
+        "avg_price": "vwap",
+        "ttl_trd_qnty": "volume",
+        "turnover_lacs": "turnover",
+        "no_of_trades": "trade_count",
+        "deliv_qty": "delivery_volume",
+        "deliv_per": "delivery_percent",
+    }
+
     NUMERIC_COLUMNS: tuple[str, ...] = (
-        "OPEN",
-        "HIGH",
-        "LOW",
-        "CLOSE",
-        "LAST",
-        "PREVCLOSE",
-        "TOTTRDQTY",
-        "TOTTRDVAL",
+        "open",
+        "high",
+        "low",
+        "close",
+        "last",
+        "prevclose",
+        "volume",
+        "delivery_volume",
+        "delivery_percent",
+        "turnover",
+        "vwap",
+        "tottrdqty",
+        "tottrdval",
     )
 
     DATE_COLUMNS: tuple[str, ...] = (
@@ -63,55 +70,30 @@ class DataTransformer:
     )
 
     STRING_COLUMNS: tuple[str, ...] = (
-        "SYMBOL",
-        "SERIES",
+        "symbol",
+        "series",
     )
 
     def __init__(
         self,
         logger: logging.Logger | None = None,
     ) -> None:
-        """
-        Initialize the DataTransformer.
 
-        Parameters
-        ----------
-        logger : logging.Logger | None
-            Optional logger instance.
-        """
         self.logger = logger or logging.getLogger(__name__)
 
         self.logger.info(
             "DataTransformer initialized."
         )
 
+    # ==================================================
+    # Public transformation
+    # ==================================================
+
     def transform(
         self,
         dataframe: pd.DataFrame,
     ) -> pd.DataFrame:
-        """
-        Transform validated market data.
 
-        Workflow
-        --------
-        1. Copy dataframe
-        2. Normalize column names
-        3. Clean string values
-        4. Convert numeric columns
-        5. Convert date columns
-        6. Add derived columns
-        7. Reorder columns
-
-        Parameters
-        ----------
-        dataframe : pd.DataFrame
-            Validated input dataframe.
-
-        Returns
-        -------
-        pd.DataFrame
-            Fully transformed dataframe.
-        """
         self.logger.info(
             "Starting data transformation."
         )
@@ -119,18 +101,10 @@ class DataTransformer:
         df = dataframe.copy()
 
         df = self._normalize_columns(df)
+        df = self._map_source_columns(df)
         df = self._clean_strings(df)
         df = self._convert_numeric_columns(df)
         df = self._convert_date_columns(df)
-
-        # Canonical ETL contract
-        if "trading_date" in df.columns:
-            df = df.rename(
-                columns={
-            "trading_date": "trading_date"
-        }
-    )
-
         df = self._add_derived_columns(df)
         df = self._reorder_columns(df)
 
@@ -140,42 +114,14 @@ class DataTransformer:
 
         return df
 
+    # ==================================================
+    # Normalize columns
+    # ==================================================
+
     def _normalize_columns(
         self,
         dataframe: pd.DataFrame,
     ) -> pd.DataFrame:
-        """
-        Normalize dataframe column names.
-
-        Rules
-        -----
-        1. Remove leading/trailing whitespace.
-        2. Convert to lowercase.
-        3. Replace spaces with underscores.
-        4. Replace hyphens with underscores.
-        5. Collapse multiple underscores.
-        6. Remove special characters.
-        7. Validate duplicate names.
-
-        Parameters
-        ----------
-        dataframe : pd.DataFrame
-            Input dataframe.
-
-        Returns
-        -------
-        pd.DataFrame
-            Dataframe with normalized column names.
-
-        Raises
-        ------
-        ValueError
-            If duplicate column names exist after
-            normalization.
-        """
-        self.logger.info(
-            "Normalizing dataframe columns."
-        )
 
         df = dataframe.copy()
 
@@ -183,9 +129,7 @@ class DataTransformer:
 
         for column in df.columns:
 
-            normalized = str(column)
-
-            normalized = normalized.strip().lower()
+            normalized = str(column).strip().lower()
 
             normalized = normalized.replace(
                 " ",
@@ -221,11 +165,6 @@ class DataTransformer:
 
         if duplicates:
 
-            self.logger.error(
-                "Duplicate normalized columns detected: %s",
-                duplicates,
-            )
-
             raise ValueError(
                 "Duplicate column names after normalization: "
                 f"{duplicates}"
@@ -233,52 +172,57 @@ class DataTransformer:
 
         df.columns = normalized_columns
 
-        self.logger.info(
-            "Column normalization completed."
-        )
+        return df
+
+    # ==================================================
+    # Map raw source columns
+    # ==================================================
+
+    def _map_source_columns(
+        self,
+        dataframe: pd.DataFrame,
+    ) -> pd.DataFrame:
+
+        df = dataframe.copy()
+
+        rename_map = {
+            source: target
+            for source, target in self.COLUMN_MAPPING.items()
+            if source in df.columns
+            and source != target
+        }
+
+        if rename_map:
+
+            self.logger.info(
+                "Mapping source columns: %s",
+                rename_map,
+            )
+
+            df = df.rename(
+                columns=rename_map
+            )
 
         return df
+
+    # ==================================================
+    # Clean strings
+    # ==================================================
 
     def _clean_strings(
         self,
         dataframe: pd.DataFrame,
     ) -> pd.DataFrame:
-        """
-        Clean string columns.
-
-        Operations
-        ----------
-        1. Remove leading and trailing whitespace.
-        2. Replace multiple consecutive spaces with a single space.
-        3. Convert empty strings to pandas NA.
-        4. Preserve non-string values.
-        5. Skip columns that do not exist.
-
-        Parameters
-        ----------
-        dataframe : pd.DataFrame
-            Input dataframe.
-
-        Returns
-        -------
-        pd.DataFrame
-            DataFrame with cleaned string values.
-        """
-        self.logger.info(
-            "Cleaning string columns."
-        )
 
         df = dataframe.copy()
 
         for column in self.STRING_COLUMNS:
 
-            normalized_column = column.lower()
-
-            if normalized_column not in df.columns:
+            if column not in df.columns:
                 continue
 
-            df[normalized_column] = (
-                df[normalized_column]
+            df[column] = (
+                df[column]
                 .astype("string")
                 .str.strip()
                 .str.replace(
@@ -288,189 +232,87 @@ class DataTransformer:
                 )
             )
 
-            df[normalized_column] = (
-                df[normalized_column]
-                .replace(
-                    "",
-                    pd.NA,
-                )
+            df[column] = df[column].replace(
+                "",
+                pd.NA,
             )
 
-        self.logger.info(
-            "String cleaning completed."
-        )
-
         return df
+
+    # ==================================================
+    # Numeric conversion
+    # ==================================================
 
     def _convert_numeric_columns(
         self,
         dataframe: pd.DataFrame,
     ) -> pd.DataFrame:
-        """
-        Convert configured columns to numeric data types.
-
-        Operations
-        ----------
-        1. Process only configured numeric columns.
-        2. Skip columns that are not present.
-        3. Convert values to numeric.
-        4. Invalid values become NaN.
-        5. Preserve dataframe integrity.
-
-        Parameters
-        ----------
-        dataframe : pd.DataFrame
-            Input dataframe.
-
-        Returns
-        -------
-        pd.DataFrame
-            DataFrame with numeric columns converted.
-        """
-        self.logger.info(
-            "Converting numeric columns."
-        )
 
         df = dataframe.copy()
 
         for column in self.NUMERIC_COLUMNS:
 
-            normalized_column = column.lower()
-
-            if normalized_column not in df.columns:
+            if column not in df.columns:
                 continue
 
-            self.logger.debug(
-                "Converting numeric column: %s",
-                normalized_column,
-            )
-
-            df[normalized_column] = pd.to_numeric(
-                df[normalized_column],
+            df[column] = pd.to_numeric(
+                df[column],
                 errors="coerce",
             )
 
-        self.logger.info(
-            "Numeric column conversion completed."
-        )
-
         return df
+
+    # ==================================================
+    # Date conversion
+    # ==================================================
+
     def _convert_date_columns(
         self,
         dataframe: pd.DataFrame,
     ) -> pd.DataFrame:
-        """
-        Convert configured columns to datetime.
-
-        Operations
-        ----------
-        1. Process only configured date columns.
-        2. Skip columns that are not present.
-        3. Convert values to datetime.
-        4. Invalid dates become NaT.
-        5. Preserve dataframe integrity.
-
-        Parameters
-        ----------
-        dataframe : pd.DataFrame
-            Input dataframe.
-
-        Returns
-        -------
-        pd.DataFrame
-            DataFrame with datetime columns converted.
-        """
-        self.logger.info(
-            "Converting date columns."
-        )
 
         df = dataframe.copy()
 
         for column in self.DATE_COLUMNS:
 
-            normalized_column = column.lower()
-
-            if normalized_column not in df.columns:
+            if column not in df.columns:
                 continue
 
-            self.logger.debug(
-                "Converting date column: %s",
-                normalized_column,
-            )
-
-            df[normalized_column] = pd.to_datetime(
-                df[normalized_column],
+            df[column] = pd.to_datetime(
+                df[column],
                 errors="coerce",
                 dayfirst=True,
             )
 
-        self.logger.info(
-            "Date column conversion completed."
-        )
-
         return df
+
+    # ==================================================
+    # Derived columns
+    # ==================================================
+
     def _add_derived_columns(
         self,
         dataframe: pd.DataFrame,
     ) -> pd.DataFrame:
-        """
-        Add derived columns to the dataframe.
-
-        Operations
-        ----------
-        1. Add processing timestamp.
-        2. Preserve existing columns.
-        3. Do not overwrite existing derived columns.
-
-        Parameters
-        ----------
-        dataframe : pd.DataFrame
-            Input dataframe.
-
-        Returns
-        -------
-        pd.DataFrame
-            DataFrame with derived columns added.
-        """
-        self.logger.info(
-            "Adding derived columns."
-        )
 
         df = dataframe.copy()
 
         if "processed_at" not in df.columns:
-            df["processed_at"] = pd.Timestamp.now("UTC")
 
-        self.logger.info(
-            "Derived columns added successfully."
-        )
+            df["processed_at"] = pd.Timestamp.now(
+                tz="UTC"
+            )
 
         return df
+
+    # ==================================================
+    # Reorder columns
+    # ==================================================
 
     def _reorder_columns(
         self,
         dataframe: pd.DataFrame,
     ) -> pd.DataFrame:
-        """
-        Reorder dataframe columns.
-
-        The preferred business columns are placed first.
-        Any additional columns are appended while preserving
-        their original order.
-
-        Parameters
-        ----------
-        dataframe : pd.DataFrame
-            Input dataframe.
-
-        Returns
-        -------
-        pd.DataFrame
-            DataFrame with reordered columns.
-        """
-        self.logger.info(
-            "Reordering dataframe columns."
-        )
 
         df = dataframe.copy()
 
@@ -484,6 +326,12 @@ class DataTransformer:
             "close",
             "last",
             "prevclose",
+            "volume",
+            "delivery_volume",
+            "delivery_percent",
+            "trade_count",
+            "turnover",
+            "vwap",
             "tottrdqty",
             "tottrdval",
             "processed_at",
@@ -501,12 +349,8 @@ class DataTransformer:
             if column not in ordered_columns
         ]
 
-        df = df[
+        return df[
             ordered_columns + remaining_columns
         ]
 
-        self.logger.info(
-            "Column reordering completed."
-        )
 
-        return df

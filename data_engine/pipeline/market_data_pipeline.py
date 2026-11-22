@@ -250,7 +250,8 @@ class MarketDataPipeline:
 
             rows_imported = (
                 self.service.import_market_data(
-                    dataframe
+                    dataframe,
+                    universe_code="NIFTY500",
                 )
             )
 
